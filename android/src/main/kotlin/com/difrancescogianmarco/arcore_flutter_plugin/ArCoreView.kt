@@ -233,6 +233,39 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 debugLog(" Toggle planeRenderer visibility" )
                 arSceneView!!.planeRenderer.isVisible = !arSceneView!!.planeRenderer.isVisible
             }
+            "performHitTest" -> {
+                try {
+                    val coordX = call.argument<Double>("x")
+                    val coordY = call.argument<Double>("y")
+
+                    val x = coordX?.toFloat()
+                    val y = coordY?.toFloat()
+
+                    val frame = arSceneView?.arFrame
+                    if (frame != null) {
+                        if (frame.camera.trackingState == TrackingState.TRACKING) {
+                            val hitList = frame.hitTest(x!!, y!!)
+                            val list = ArrayList<HashMap<String, Any>>()
+                            for (hit in hitList) {
+                                val trackable = hit.trackable
+                                if (trackable is Plane && trackable.isPoseInPolygon(hit.hitPose)) {
+                                    hit.hitPose
+                                    val distance: Float = hit.distance
+                                    val translation = hit.hitPose.translation
+                                    val rotation = hit.hitPose.rotationQuaternion
+                                    val flutterArCoreHitTestResult = FlutterArCoreHitTestResult(distance, translation, rotation)
+                                    val arguments = flutterArCoreHitTestResult.toHashMap()
+                                    list.add(arguments)
+                                }
+                            }
+                            result.success(list)
+                        }
+                    }
+
+                } catch (e: Exception) {
+                    result.error("e", e.message, null)
+                }
+            }
             else -> {
             }
         }

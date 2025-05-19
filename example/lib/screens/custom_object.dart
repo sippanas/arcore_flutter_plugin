@@ -20,9 +20,19 @@ class _CustomObjectState extends State<CustomObject> {
         appBar: AppBar(
           title: const Text('Custom Object on plane detected'),
         ),
-        body: ArCoreView(
-          onArCoreViewCreated: _onArCoreViewCreated,
-          enableTapRecognizer: true,
+        body: Container(
+          child: Stack(
+            children: [
+              ArCoreView(
+                onArCoreViewCreated: _onArCoreViewCreated,
+                enableTapRecognizer: true,
+              ),
+              ElevatedButton(
+                onPressed: _handleHitTest,
+                child: Text('Hit test'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -62,7 +72,7 @@ class _CustomObjectState extends State<CustomObject> {
     final earth = ArCoreNode(
         shape: earthShape,
         children: [moon],
-        position: hit.pose.translation + vector.Vector3(0.0, 1.0, 0.0),
+        position: hit.pose.translation + vector.Vector3(0.0, 0.1, 0.0),
         rotation: hit.pose.rotation);
 
     arCoreController?.addArCoreNodeWithAnchor(earth);
@@ -71,6 +81,12 @@ class _CustomObjectState extends State<CustomObject> {
   void _handleOnPlaneTap(List<ArCoreHitTestResult> hits) {
     final hit = hits.first;
     _addSphere(hit);
+  }
+
+  Future<void> _handleHitTest() async {
+    final hitTestResult = await arCoreController!.performHitTest(500, 500);
+
+    _addSphere(hitTestResult.first);
   }
 
   void onTapHandler(String name) {
