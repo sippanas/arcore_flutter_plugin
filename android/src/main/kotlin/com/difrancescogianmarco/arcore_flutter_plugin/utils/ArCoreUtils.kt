@@ -8,28 +8,29 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Build.VERSION_CODES
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
-import androidx.core.app.ActivityCompat
 import android.widget.Toast
 import androidx.annotation.Nullable
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.ar.core.exceptions.*
-import java.util.*
-import androidx.core.content.ContextCompat.getSystemService
-import android.os.Build.VERSION_CODES
-import com.google.ar.core.*
+import com.google.ar.core.ArCoreApk
 import com.google.ar.core.CameraConfig
-
+import com.google.ar.core.CameraConfigFilter
+import com.google.ar.core.Session
+import com.google.ar.core.exceptions.UnavailableApkTooOldException
+import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException
+import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
+import com.google.ar.core.exceptions.UnavailableException
+import com.google.ar.core.exceptions.UnavailableSdkTooOldException
+import java.util.EnumSet
 
 class ArCoreUtils {
-
-
     companion object {
-
         private val TAG = ArCoreUtils::class.java.name
         private val MIN_OPENGL_VERSION = 3.0
         private val CAMERA_PERMISSION_CODE = 0
@@ -95,7 +96,7 @@ class ArCoreUtils {
         /** Check to see we have the necessary permissions for this app, and ask for them if we don't.  */
         fun requestCameraPermission(activity: Activity, requestCode: Int) {
             ActivityCompat.requestPermissions(
-                    activity, arrayOf(Manifest.permission.CAMERA), requestCode)
+                activity, arrayOf(Manifest.permission.CAMERA), requestCode)
         }
 
         /** Check to see we have the necessary permissions for this app.  */
@@ -106,7 +107,7 @@ class ArCoreUtils {
         /** Check to see if we need to show the rationale for this permission.  */
         fun shouldShowRequestPermissionRationale(activity: Activity): Boolean {
             return ActivityCompat.shouldShowRequestPermissionRationale(
-                    activity, Manifest.permission.CAMERA)
+                activity, Manifest.permission.CAMERA)
         }
 
         /** Launch Application Setting to grant permission.  */
@@ -122,7 +123,7 @@ class ArCoreUtils {
          * will be appended to the toast. The error will also be written to the Log
          */
         fun displayError(
-                context: Context, errorMsg: String, @Nullable problem: Throwable?) {
+            context: Context, errorMsg: String, @Nullable problem: Throwable?) {
             val tag = context.javaClass.simpleName
             val toastText: String
             if (problem != null && problem.message != null) {
@@ -137,15 +138,16 @@ class ArCoreUtils {
             }
 
             Handler(Looper.getMainLooper())
-                    .post {
-                        val toast = Toast.makeText(context, toastText, Toast.LENGTH_LONG)
-                        toast.setGravity(Gravity.CENTER, 0, 0)
-                        toast.show()
-                    }
+                .post {
+                    val toast = Toast.makeText(context, toastText, Toast.LENGTH_LONG)
+                    toast.setGravity(Gravity.CENTER, 0, 0)
+                    toast.show()
+                }
         }
 
         fun handleSessionException(
-                activity: Activity, sessionException: UnavailableException) {
+            activity: Activity, sessionException: UnavailableException
+        ) {
 
             val message: String
             if (sessionException is UnavailableArcoreNotInstalledException) {
@@ -181,12 +183,12 @@ class ArCoreUtils {
                 return false
             }
             val openGlVersionString = (activity.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager)
-                    .deviceConfigurationInfo
-                    .glEsVersion
+                .deviceConfigurationInfo
+                .glEsVersion
             if (java.lang.Double.parseDouble(openGlVersionString) < MIN_OPENGL_VERSION) {
                 Log.e(TAG, "Sceneform requires OpenGL ES 3.0 later")
                 Toast.makeText(activity, "Sceneform requires OpenGL ES 3.0 or later", Toast.LENGTH_LONG)
-                        .show()
+                    .show()
                 activity.finish()
                 return false
             }

@@ -7,7 +7,6 @@ import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.rendering.ShapeFactory
 
 class FlutterArCoreShape(map: HashMap<String, *>) {
-
     val dartType: String = map["dartType"] as String
     val materials: ArrayList<FlutterArCoreMaterial> = getMaterials(map["materials"] as ArrayList<HashMap<String, *>>)
     val radius: Float? = (map["radius"] as? Double)?.toFloat()

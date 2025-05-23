@@ -8,7 +8,6 @@ import com.google.ar.sceneform.Node
 typealias NodeHandler = (Node?, Throwable?) -> Unit
 
 class NodeFactory {
-
     companion object {
         val TAG: String = NodeFactory::class.java.name
 

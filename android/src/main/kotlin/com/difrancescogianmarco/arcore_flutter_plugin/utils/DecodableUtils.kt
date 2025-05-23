@@ -1,12 +1,10 @@
 package com.difrancescogianmarco.arcore_flutter_plugin.utils
 
-import android.util.Log
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
-import java.util.*
+import java.util.HashMap
 
 class DecodableUtils {
-
     companion object {
         fun parseVector3(vector: HashMap<String, *>?): Vector3? {
             if (vector != null) {

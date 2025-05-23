@@ -30,14 +30,13 @@ class ArCoreController {
     return arcoreInstalled;
   }
 
-  ArCoreController(
-      {required this.id,
-      this.enableTapRecognizer,
-      this.enablePlaneRenderer,
-      this.enableUpdateListener,
-      this.debug = false
+  ArCoreController({required this.id,
+    this.enableTapRecognizer,
+    this.enablePlaneRenderer,
+    this.enableUpdateListener,
+    this.debug = false
 //    @required this.onUnsupported,
-      }) {
+  }) {
     _channel = MethodChannel('arcore_flutter_plugin_$id');
     _channel.setMethodCallHandler(_handleMethodCalls);
     init();
@@ -104,7 +103,7 @@ class ArCoreController {
         }
         break;
       case 'getTrackingState':
-        // TRACKING, PAUSED or STOPPED
+      // TRACKING, PAUSED or STOPPED
         trackingState = call.arguments;
         if (debug ?? true) {
           print('Latest tracking state received is: $trackingState');
@@ -115,7 +114,7 @@ class ArCoreController {
           print('flutter onTrackingImage');
         }
         final arCoreAugmentedImage =
-            ArCoreAugmentedImage.fromMap(call.arguments);
+        ArCoreAugmentedImage.fromMap(call.arguments);
         onTrackingImage!(arCoreAugmentedImage);
         break;
       case 'togglePlaneRenderer':
@@ -206,8 +205,8 @@ class ArCoreController {
         'updateMaterials', _getHandlerParams(node, node.shape!.toMap()));
   }
 
-  Map<String, dynamic> _getHandlerParams(
-      ArCoreNode node, Map<String, dynamic>? params) {
+  Map<String, dynamic> _getHandlerParams(ArCoreNode node,
+      Map<String, dynamic>? params) {
     final Map<String, dynamic> values = <String, dynamic>{'name': node.name}
       ..addAll(params!);
     return values;
@@ -232,6 +231,15 @@ class ArCoreController {
     return _channel.invokeMethod('load_augmented_images_database', {
       'bytes': bytes,
     });
+  }
+
+  Future<List<ArCoreHitTestResult>> performHitTest(double x, double y) async {
+    final hitTestResultRaw = await _channel
+        .invokeMethod<List<dynamic>?>('performHitTest', {'x': x, 'y': y});
+
+    final hitTestResult = hitTestResultRaw?.map((item) =>
+        ArCoreHitTestResult.fromMap(item)).toList() ?? [];
+    return hitTestResult;
   }
 
   void dispose() {

@@ -9,7 +9,6 @@ import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 
 class FlutterArCoreNode(map: HashMap<String, *>) {
-
     val dartType: String = map["dartType"] as String
     val name: String = map["name"] as String
     val image: FlutterArCoreImage? = createArCoreImage(map["image"] as? HashMap<String, *>)
@@ -18,9 +17,9 @@ class FlutterArCoreNode(map: HashMap<String, *>) {
     val shape: FlutterArCoreShape? = getShape(map["shape"] as? HashMap<String, *>)
     val position: Vector3 = parseVector3(map["position"] as? HashMap<String, *>) ?: Vector3()
     val scale: Vector3 = parseVector3(map["scale"] as? HashMap<String, *>)
-            ?: Vector3(1.0F, 1.0F, 1.0F)
+        ?: Vector3(1.0F, 1.0F, 1.0F)
     val rotation: Quaternion = parseQuaternion(map["rotation"] as? HashMap<String, Double>)
-            ?: Quaternion()
+        ?: Quaternion()
     val degreesPerSecond: Float? = getDegreesPerSecond((map["degreesPerSecond"] as? Double))
     var parentNodeName: String? = map["parentNodeName"] as? String
 
@@ -90,5 +89,4 @@ class FlutterArCoreNode(map: HashMap<String, *>) {
                 "rotation: $rotation\n" +
                 "parentNodeName: $parentNodeName"
     }
-
 }

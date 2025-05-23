@@ -11,11 +11,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
-import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCoreHitTestResult
-import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCoreNode
 import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCorePose
-import com.difrancescogianmarco.arcore_flutter_plugin.models.RotatingNode
-import com.difrancescogianmarco.arcore_flutter_plugin.utils.ArCoreUtils
 import com.google.ar.core.*
 import com.google.ar.core.exceptions.CameraNotAvailableException
 import com.google.ar.core.exceptions.UnavailableException
@@ -24,7 +20,6 @@ import com.google.ar.sceneform.*
 import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.rendering.Texture
 import com.google.ar.sceneform.ux.AugmentedFaceNode
-import io.flutter.app.FlutterApplication
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -34,12 +29,13 @@ import android.graphics.Bitmap
 import android.os.Environment
 import android.view.PixelCopy
 import android.os.HandlerThread
-import android.content.ContextWrapper
+import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCoreHitTestResult
+import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCoreNode
+import com.difrancescogianmarco.arcore_flutter_plugin.models.RotatingNode
+import com.difrancescogianmarco.arcore_flutter_plugin.utils.ArCoreUtils
 import java.io.FileOutputStream
 import java.io.File
 import java.io.IOException
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMessenger, id: Int, private val isAugmentedFaces: Boolean, private val debug: Boolean) : PlatformView, MethodChannel.MethodCallHandler {
     private val methodChannel: MethodChannel = MethodChannel(messenger, "arcore_flutter_plugin_$id")
@@ -233,6 +229,39 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 debugLog(" Toggle planeRenderer visibility" )
                 arSceneView!!.planeRenderer.isVisible = !arSceneView!!.planeRenderer.isVisible
             }
+            "performHitTest" -> {
+                try {
+                    val coordX = call.argument<Double>("x")
+                    val coordY = call.argument<Double>("y")
+
+                    val x = coordX?.toFloat()
+                    val y = coordY?.toFloat()
+
+                    val frame = arSceneView?.arFrame
+                    if (frame != null) {
+                        if (frame.camera.trackingState == TrackingState.TRACKING) {
+                            val hitList = frame.hitTest(x!!, y!!)
+                            val list = ArrayList<HashMap<String, Any>>()
+                            for (hit in hitList) {
+                                val trackable = hit.trackable
+                                if (trackable is Plane && trackable.isPoseInPolygon(hit.hitPose)) {
+                                    hit.hitPose
+                                    val distance: Float = hit.distance
+                                    val translation = hit.hitPose.translation
+                                    val rotation = hit.hitPose.rotationQuaternion
+                                    val flutterArCoreHitTestResult = FlutterArCoreHitTestResult(distance, translation, rotation)
+                                    val arguments = flutterArCoreHitTestResult.toHashMap()
+                                    list.add(arguments)
+                                }
+                            }
+                            result.success(list)
+                        }
+                    }
+
+                } catch (e: Exception) {
+                    result.error("e", e.message, null)
+                }
+            }
             else -> {
             }
         }
@@ -287,8 +316,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
 
             override fun onActivityDestroyed(activity: Activity) {
                 debugLog("onActivityDestroyed (Just so you know)")
-//                onDestroy()
-//                dispose()
+                onDestroy()
             }
         }
 
@@ -508,8 +536,8 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
         result.success(null)
     }
 
-    override fun getView(): View {
-        return arSceneView as View
+    override fun getView(): View? {
+        return arSceneView
     }
 
     override fun dispose() {
