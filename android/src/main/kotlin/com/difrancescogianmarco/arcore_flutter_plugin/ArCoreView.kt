@@ -26,6 +26,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Environment
 import android.view.PixelCopy
 import android.os.HandlerThread
@@ -154,7 +155,6 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 .thenAccept { texture -> faceMeshTexture = texture }
     }
 
-
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "init" -> {
@@ -168,13 +168,18 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
             }
             "addArCoreText" -> {
                 val text = call.argument<String>("text")
+                val colorRaw = call.argument<HashMap<String, Float>>("color")
                 val rawPosition = call.argument<HashMap<String, *>>("position")
                 val rawRotation = call.argument<HashMap<String, Double>>("rotation")
 
                 val position = DecodableUtils.parseVector3(rawPosition)
                 val rotation = DecodableUtils.parseQuaternion(rawRotation)
 
-                customShapeFactory?.makeText(text!!, position!!, rotation!!)
+                val color = Color.argb(colorRaw!!["a"]!!, colorRaw["r"]!!, colorRaw["g"]!!,
+                    colorRaw["b"]!!
+                )
+
+                customShapeFactory?.makeText(text!!, color, position!!, rotation!!)
             }
             "addArCoreNodeWithAnchor" -> {
                 debugLog(" addArCoreNode")

@@ -89,6 +89,7 @@ class _CustomObjectState extends State<CustomObject> {
     // _addSphere(hitTestResult.first);
     await arCoreController!.addArCoreText(
       'Hello world',
+      Color(0xFF000000),
       hitTestResult.first.pose.translation + vector.Vector3(0.0, 0.1, 0.0),
       hitTestResult.first.pose.rotation,
     );

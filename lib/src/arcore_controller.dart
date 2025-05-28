@@ -245,9 +245,15 @@ class ArCoreController {
     return hitTestResult;
   }
 
-  Future<void> addArCoreText(String text, Vector3 position, Vector4 rotation) async {
+  Future<void> addArCoreText(String text, Color color, Vector3 position, Vector4 rotation) async {
     await _channel.invokeMethod<void>('addArCoreText', {
       'text': text,
+      'color': {
+        'a': color.a,
+        'r': color.r,
+        'g': color.g,
+        'b': color.b,
+      },
       'position': {
         'x': position.x,
         'y': position.y,

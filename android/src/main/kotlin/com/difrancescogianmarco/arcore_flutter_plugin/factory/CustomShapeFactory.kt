@@ -23,10 +23,11 @@ import com.google.ar.sceneform.rendering.ShapeFactory
 import com.google.ar.sceneform.rendering.Texture
 import com.google.ar.sceneform.rendering.ViewRenderable
 import kotlinx.coroutines.future.await
+import androidx.core.graphics.toColorInt
 
 class CustomShapeFactory(private val context: Context, private val arSceneView: ArSceneView) {
-    fun makeText(text: String, position: Vector3, rotation: Quaternion) {
-        val bitmap = createTextBitmap(text)
+    fun makeText(text: String, color: Int, position: Vector3, rotation: Quaternion) {
+        val bitmap = createTextBitmap(text, color)
 
         Texture.builder()
             .setSource(bitmap)
@@ -65,9 +66,9 @@ class CustomShapeFactory(private val context: Context, private val arSceneView: 
             }
     }
 
-    private fun createTextBitmap(text: String): Bitmap {
+    private fun createTextBitmap(text: String, color: Int): Bitmap {
         val paint = Paint().apply {
-            this.color = Color.BLACK
+            this.color = color
             textSize = 100f
             isAntiAlias = true
         }
