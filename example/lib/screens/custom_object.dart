@@ -86,7 +86,12 @@ class _CustomObjectState extends State<CustomObject> {
   Future<void> _handleHitTest() async {
     final hitTestResult = await arCoreController!.performHitTest(500, 500);
 
-    _addSphere(hitTestResult.first);
+    // _addSphere(hitTestResult.first);
+    await arCoreController!.addArCoreText(
+      'Hello world',
+      hitTestResult.first.pose.translation + vector.Vector3(0.0, 0.1, 0.0),
+      hitTestResult.first.pose.rotation,
+    );
   }
 
   void onTapHandler(String name) {

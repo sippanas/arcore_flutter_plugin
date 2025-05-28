@@ -29,28 +29,28 @@ import android.graphics.Bitmap
 import android.os.Environment
 import android.view.PixelCopy
 import android.os.HandlerThread
+import com.difrancescogianmarco.arcore_flutter_plugin.factory.CustomShapeFactory
 import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCoreHitTestResult
 import com.difrancescogianmarco.arcore_flutter_plugin.flutter_models.FlutterArCoreNode
 import com.difrancescogianmarco.arcore_flutter_plugin.models.RotatingNode
 import com.difrancescogianmarco.arcore_flutter_plugin.utils.ArCoreUtils
+import com.difrancescogianmarco.arcore_flutter_plugin.utils.DecodableUtils
 import java.io.FileOutputStream
 import java.io.File
 import java.io.IOException
 
 class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMessenger, id: Int, private val isAugmentedFaces: Boolean, private val debug: Boolean) : PlatformView, MethodChannel.MethodCallHandler {
     private val methodChannel: MethodChannel = MethodChannel(messenger, "arcore_flutter_plugin_$id")
-    //       private val activity: Activity = (context.applicationContext as FlutterApplication).currentActivity
     lateinit var activityLifecycleCallbacks: Application.ActivityLifecycleCallbacks
-    private var installRequested: Boolean = false
     private var mUserRequestedInstall = true
     private val TAG: String = ArCoreView::class.java.name
     private var arSceneView: ArSceneView? = null
     private val gestureDetector: GestureDetector
     private val RC_PERMISSIONS = 0x123
+    private var customShapeFactory: CustomShapeFactory? = null
     private var sceneUpdateListener: Scene.OnUpdateListener
     private var faceSceneUpdateListener: Scene.OnUpdateListener
 
-    //AUGMENTEDFACE
     private var faceRegionsRenderable: ModelRenderable? = null
     private var faceMeshTexture: Texture? = null
     private val faceNodeMap = HashMap<AugmentedFace, AugmentedFaceNode>()
@@ -58,6 +58,8 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
     init {
         methodChannel.setMethodCallHandler(this)
         arSceneView = ArSceneView(context)
+        customShapeFactory = CustomShapeFactory(activity.applicationContext!!, arSceneView!!)
+
         // Set up a tap gesture detector.
         gestureDetector = GestureDetector(
                 context,
@@ -84,7 +86,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 if (plane.trackingState == TrackingState.TRACKING) {
 
                     val pose = plane.centerPose
-                    val map: HashMap<String, Any> = HashMap<String, Any>()
+                    val map: HashMap<String, Any> = HashMap()
                     map["type"] = plane.type.ordinal
                     map["centerPose"] = FlutterArCorePose(pose.translation, pose.rotationQuaternion).toHashMap()
                     map["extentX"] = plane.extentX
@@ -97,7 +99,6 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
 
         faceSceneUpdateListener = Scene.OnUpdateListener { frameTime ->
             run {
-                //                if (faceRegionsRenderable == null || faceMeshTexture == null) {
                 if (faceMeshTexture == null) {
                     return@OnUpdateListener
                 }
@@ -146,17 +147,7 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
     fun loadMesh(textureBytes: ByteArray?) {
         // Load the face regions renderable.
         // This is a skinned model that renders 3D objects mapped to the regions of the augmented face.
-        /*ModelRenderable.builder()
-                .setSource(activity, Uri.parse("fox_face.sfb"))
-                .build()
-                .thenAccept { modelRenderable ->
-                    faceRegionsRenderable = modelRenderable;
-                    modelRenderable.isShadowCaster = false;
-                    modelRenderable.isShadowReceiver = false;
-                }*/
 
-        // Load the face mesh texture.
-        //                .setSource(activity, Uri.parse("fox_face_mesh_texture.png"))
         Texture.builder()
                 .setSource(BitmapFactory.decodeByteArray(textureBytes, 0, textureBytes!!.size))
                 .build()
@@ -172,8 +163,18 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
             "addArCoreNode" -> {
                 debugLog(" addArCoreNode")
                 val map = call.arguments as HashMap<String, Any>
-                val flutterNode = FlutterArCoreNode(map);
+                val flutterNode = FlutterArCoreNode(map)
                 onAddNode(flutterNode, result)
+            }
+            "addArCoreText" -> {
+                val text = call.argument<String>("text")
+                val rawPosition = call.argument<HashMap<String, *>>("position")
+                val rawRotation = call.argument<HashMap<String, Double>>("rotation")
+
+                val position = DecodableUtils.parseVector3(rawPosition)
+                val rotation = DecodableUtils.parseQuaternion(rawRotation)
+
+                customShapeFactory?.makeText(text!!, position!!, rotation!!)
             }
             "addArCoreNodeWithAnchor" -> {
                 debugLog(" addArCoreNode")
@@ -266,25 +267,6 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
             }
         }
     }
-
-/*    fun maybeEnableArButton() {
-        Log.i(TAG,"maybeEnableArButton" )
-        try{
-            val availability = ArCoreApk.getInstance().checkAvailability(activity.applicationContext)
-            if (availability.isTransient) {
-                // Re-query at 5Hz while compatibility is checked in the background.
-                Handler().postDelayed({ maybeEnableArButton() }, 200)
-            }
-            if (availability.isSupported) {
-                debugLog("AR SUPPORTED")
-            } else { // Unsupported or unknown.
-                debugLog("AR NOT SUPPORTED")
-            }
-        }catch (ex:Exception){
-            Log.i(TAG,"maybeEnableArButton ${ex.localizedMessage}" )
-        }
-
-    }*/
 
     private fun setupLifeCycle(context: Context) {
         activityLifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
@@ -466,18 +448,9 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
     fun onAddNode(flutterArCoreNode: FlutterArCoreNode, result: MethodChannel.Result?) {
 
         debugLog(flutterArCoreNode.toString())
-        NodeFactory.makeNode(activity.applicationContext, flutterArCoreNode, debug) { node, throwable ->
-
+        NodeFactory.makeNode(activity.applicationContext, flutterArCoreNode, debug) { node, _ ->
             debugLog("onAddNode inserted ${node?.name}")
 
-/*            if (flutterArCoreNode.parentNodeName != null) {
-                debugLog(flutterArCoreNode.parentNodeName);
-                val parentNode: Node? = arSceneView?.scene?.findByName(flutterArCoreNode.parentNodeName)
-                parentNode?.addChild(node)
-            } else {
-                debugLog("addNodeToSceneWithGeometry: NOT PARENT_NODE_NAME")
-                arSceneView?.scene?.addChild(node)
-            }*/
             if (node != null) {
                 attachNodeToParent(node, flutterArCoreNode.parentNodeName)
                 for (n in flutterArCoreNode.children) {
@@ -621,43 +594,9 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
                 arSceneView?.destroy()
                 arSceneView = null
 
-            }catch (e : Exception){
+            } catch (e : Exception) {
                 e.printStackTrace();
            }
         }
     }
-
-    /* private fun tryPlaceNode(tap: MotionEvent?, frame: Frame) {
-        if (tap != null && frame.camera.trackingState == TrackingState.TRACKING) {
-            for (hit in frame.hitTest(tap)) {
-                val trackable = hit.trackable
-                if (trackable is Plane && trackable.isPoseInPolygon(hit.hitPose)) {
-                    // Create the Anchor.
-                    val anchor = hit.createAnchor()
-                    val anchorNode = AnchorNode(anchor)
-                    anchorNode.setParent(arSceneView?.scene)
-
-                    ModelRenderable.builder()
-                            .setSource(activity.applicationContext, Uri.parse("TocoToucan.sfb"))
-                            .build()
-                            .thenAccept { renderable ->
-                                val node = Node()
-                                node.renderable = renderable
-                                anchorNode.addChild(node)
-                            }.exceptionally { throwable ->
-                                Log.e(TAG, "Unable to load Renderable.", throwable);
-                                return@exceptionally null
-                            }
-                }
-            }
-        }
-
-    }*/
-
-    /*    fun updatePosition(call: MethodCall, result: MethodChannel.Result) {
-        val name = call.argument<String>("name")
-        val node = arSceneView?.scene?.findByName(name)
-        node?.localPosition = parseVector3(call.arguments as HashMap<String, Any>)
-        result.success(null)
-    }*/
 }

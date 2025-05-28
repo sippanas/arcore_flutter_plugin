@@ -1,8 +1,11 @@
 import 'package:arcore_flutter_plugin/src/arcore_augmented_image.dart';
 import 'package:arcore_flutter_plugin/src/arcore_rotating_node.dart';
+import 'package:arcore_flutter_plugin/src/utils/extensions.dart';
 import 'package:arcore_flutter_plugin/src/utils/vector_utils.dart';
+import 'package:vector_math/vector_math_64.dart';
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
+import 'package:flutter/material.dart';
 
 import 'arcore_hit_test_result.dart';
 import 'arcore_node.dart';
@@ -240,6 +243,23 @@ class ArCoreController {
     final hitTestResult = hitTestResultRaw?.map((item) =>
         ArCoreHitTestResult.fromMap(item)).toList() ?? [];
     return hitTestResult;
+  }
+
+  Future<void> addArCoreText(String text, Vector3 position, Vector4 rotation) async {
+    await _channel.invokeMethod<void>('addArCoreText', {
+      'text': text,
+      'position': {
+        'x': position.x,
+        'y': position.y,
+        'z': position.z,
+      },
+      'rotation': {
+        'x': rotation.x,
+        'y': rotation.y,
+        'z': rotation.z,
+        'w': rotation.w,
+      }
+    });
   }
 
   void dispose() {
