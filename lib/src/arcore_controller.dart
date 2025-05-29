@@ -1,10 +1,8 @@
 import 'package:arcore_flutter_plugin/src/arcore_augmented_image.dart';
 import 'package:arcore_flutter_plugin/src/arcore_rotating_node.dart';
-import 'package:arcore_flutter_plugin/src/utils/extensions.dart';
 import 'package:arcore_flutter_plugin/src/utils/vector_utils.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:flutter/services.dart';
-import 'package:meta/meta.dart';
 import 'package:flutter/material.dart';
 
 import 'arcore_hit_test_result.dart';
