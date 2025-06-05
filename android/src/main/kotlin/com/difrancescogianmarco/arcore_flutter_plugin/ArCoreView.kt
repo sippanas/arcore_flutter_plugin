@@ -39,6 +39,7 @@ import com.difrancescogianmarco.arcore_flutter_plugin.utils.DecodableUtils
 import java.io.FileOutputStream
 import java.io.File
 import java.io.IOException
+import androidx.core.graphics.createBitmap
 
 class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMessenger, id: Int, private val isAugmentedFaces: Boolean, private val debug: Boolean) : PlatformView, MethodChannel.MethodCallHandler {
     private val methodChannel: MethodChannel = MethodChannel(messenger, "arcore_flutter_plugin_$id")
@@ -194,22 +195,18 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
             }
             "positionChanged" -> {
                 debugLog(" positionChanged")
-
             }
             "rotationChanged" -> {
                 debugLog(" rotationChanged")
                 updateRotation(call, result)
-
             }
             "updateMaterials" -> {
                 debugLog(" updateMaterials")
                 updateMaterials(call, result)
-
             }
             "takeScreenshot" -> {
                 debugLog(" takeScreenshot")
                 takeScreenshot(call, result)
-
             }
             "loadMesh" -> {
                 val map = call.arguments as HashMap<String, Any>
@@ -336,23 +333,22 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
 
     private fun takeScreenshot(call: MethodCall, result: MethodChannel.Result) {
         try {
-            // create bitmap screen capture
-
             // Create a bitmap the size of the scene view.
-            val bitmap: Bitmap = Bitmap.createBitmap(arSceneView!!.getWidth(), arSceneView!!.getHeight(),
-                    Bitmap.Config.ARGB_8888)
+            val bitmap: Bitmap = createBitmap(arSceneView!!.width, arSceneView!!.height)
 
             // Create a handler thread to offload the processing of the image.
             val handlerThread = HandlerThread("PixelCopier")
             handlerThread.start()
-            // Make the request to copy.
+
             // Make the request to copy.
             PixelCopy.request(arSceneView!!, bitmap, { copyResult ->
                 if (copyResult === PixelCopy.SUCCESS) {
                     try {
-                        saveBitmapToDisk(bitmap)
+                        val screenshotPath = saveBitmapToDisk(bitmap)
+                        result.success(screenshotPath)
                     } catch (e: IOException) {
-                        e.printStackTrace();
+                        e.printStackTrace()
+                        result.error("ARCore", e.message, null)
                     }
                 }
                 handlerThread.quitSafely()
@@ -361,30 +357,22 @@ class ArCoreView(val activity: Activity, context: Context, messenger: BinaryMess
         } catch (e: Throwable) {
             // Several error may come out with file handling or DOM
             e.printStackTrace()
+            result.error("ARCore", e.message, null)
         }
-        result.success(null)
     }
 
     @Throws(IOException::class)
-    fun saveBitmapToDisk(bitmap: Bitmap):String {
+    fun saveBitmapToDisk(bitmap: Bitmap): String {
+        val screenshotName = "rawScreenshot"
+        val mediaFile = File(activity.applicationContext.cacheDir, "$screenshotName.png")
+        Log.i("ARCore", "Saved screenshot at: $mediaFile")
 
-//        val now = LocalDateTime.now()
-//        now.format(DateTimeFormatter.ofPattern("M/d/y H:m:ss"))
-        val now = "rawScreenshot"
-        // android/data/com.hswo.mvc_2021.hswo_mvc_2021_flutter_ar/files/
-        // activity.applicationContext.getFilesDir().toString() //doesnt work!!
-        // Environment.getExternalStorageDirectory()
-        val mPath: String =  Environment.getExternalStorageDirectory().toString() + "/DCIM/" + now + ".jpg"
-        val mediaFile = File(mPath)
-        debugLog(mediaFile.toString())
-        //Log.i("path","fileoutputstream opened")
-        //Log.i("path",mPath)
         val fileOutputStream = FileOutputStream(mediaFile)
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream)
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream)
         fileOutputStream.flush()
         fileOutputStream.close()
-//        Log.i("path","fileoutputstream closed")
-        return mPath as String
+
+        return mediaFile.absolutePath
     }
 
     private fun arScenViewInit(call: MethodCall, result: MethodChannel.Result, context: Context) {
